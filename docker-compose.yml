@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  pdfmerger:
+    build: .
+    container_name: pdfmerger-service
+    ports:
+      # Memetakan port kontainer 80 ke port host 8080.
+      # Anda bisa mengubah 8080 ke port lain jika diinginkan.
+      - "8080:80"
+    environment:
+      # Override path python di dalam kontainer Linux
+      - PYTHON_PATH=python3
+      # Nonaktifkan Basic Auth secara default (ubah ke true jika ingin mengaktifkan)
+      - BASIC_AUTH_ENABLED=false
+      - BASIC_AUTH_USER=admin
+      - BASIC_AUTH_PASS=admin_secret_123
+      # Nilai-nilai konfigurasi lainnya yang bisa disesuaikan:
+      # - ALLOWED_EXTENSIONS=pdf,png,jpg,jpeg,docx,txt,xlsx
+      # - MAX_FILE_SIZE=20971520
+      # - MAX_OUTPUT_LIFETIME=3600
+      # - MAX_LOG_LIFETIME_DAYS=90
+    volumes:
+      # Mount folder data agar file upload sementara, log, dan file output tetap persisten
+      - ./uploads:/var/www/html/uploads
+      - ./output:/var/www/html/output
+      - ./logs:/var/www/html/logs
+    restart: always

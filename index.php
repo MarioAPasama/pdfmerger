@@ -205,11 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $log_entry .= "Python Output:\n" . $output . "\n\n";
     file_put_contents($log_filename, $log_entry, FILE_APPEND);
 
-    // Hapus file debug.txt lama di root directory jika ada
-    $old_debug_file = __DIR__ . DIRECTORY_SEPARATOR . "debug.txt";
-    if (file_exists($old_debug_file)) {
-        @unlink($old_debug_file);
-    }
+
 
     // Cek apakah output tercipta
     $hasil_file = "output/" . $output_filename;
