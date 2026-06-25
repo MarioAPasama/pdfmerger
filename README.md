@@ -36,7 +36,7 @@ Anda dapat mengatur seluruh perilaku aplikasi secara terpusat di berkas [config.
 ```text
 pdfmerger/
 ├── config.php          # Konfigurasi terpusat (Python path, limit, dll)
-├── webservice.php      # API Endpoint PHP (menangani upload, validasi, cleanup)
+├── index.php           # API Endpoint PHP (menangani upload, validasi, cleanup)
 ├── main.py             # Skrip Python utama (konversi gambar & merge PDF)
 ├── main copy.py        # Salinan cadangan skrip Python
 ├── README.md           # Dokumentasi proyek (file ini)
@@ -57,7 +57,7 @@ Kirimkan HTTP POST Request ke `webservice.php` dengan tipe konten `multipart/for
 curl -X POST \
   -F "files[]=@C:\path\ke\file1.pdf" \
   -F "files[]=@C:\path\ke\gambar2.jpg" \
-  http://localhost/pdfmerger/webservice.php
+  http://localhost/pdfmerger/
 ```
 
 ### Contoh Respons Sukses (JSON):
