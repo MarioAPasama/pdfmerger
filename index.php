@@ -1,6 +1,23 @@
 <?php
 header("Content-Type: application/json");
 
+// Muat konfigurasi keamanan dan cleanup secara terpusat di awal
+$config_file = __DIR__ . "/config.php";
+$config = file_exists($config_file) ? include($config_file) : [];
+
+// Validasi Basic Authentication jika diaktifkan di konfigurasi
+if (isset($config['basic_auth']) && $config['basic_auth']['enabled']) {
+    $username = isset($_SERVER['PHP_AUTH_USER']) ? $_SERVER['PHP_AUTH_USER'] : '';
+    $password = isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : '';
+    
+    if ($username !== $config['basic_auth']['username'] || $password !== $config['basic_auth']['password']) {
+        header('WWW-Authenticate: Basic realm="PDF Merger API"');
+        http_response_code(401);
+        echo json_encode(["error" => "Unauthorized. Kredensial autentikasi salah atau tidak terkirim."]);
+        exit;
+    }
+}
+
 // Helper function to recursively delete a directory
 function rmdir_recursive($dir) {
     if (is_dir($dir)) {
@@ -45,6 +62,7 @@ function clean_old_logs($directory, $lifetime_days) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_FILES['files'])) {
+        http_response_code(400);
         echo json_encode(["error" => "Form-data 'files' belum dikirim."]);
         exit;
     }
@@ -65,9 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $upload_dir = __DIR__ . "/uploads/";
     if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
 
-    // Muat konfigurasi keamanan dan cleanup
-    $config_file = __DIR__ . "/config.php";
-    $config = file_exists($config_file) ? include($config_file) : [];
     $allowed_extensions = isset($config['allowed_extensions']) ? $config['allowed_extensions'] : ['pdf', 'png', 'jpg', 'jpeg'];
     $max_file_size = isset($config['max_file_size']) ? $config['max_file_size'] : 20 * 1024 * 1024;
     $max_output_lifetime = isset($config['max_output_lifetime']) ? $config['max_output_lifetime'] : 3600;
@@ -87,6 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // 1. Cek upload error
         if ($uploaded_files['error'][$key] !== UPLOAD_ERR_OK) {
+            http_response_code(400);
             echo json_encode(["error" => "Gagal mengunggah file '{$orig_filename}' (Kode error: " . $uploaded_files['error'][$key] . ")"]);
             exit;
         }
@@ -94,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 2. Cek tipe file (ekstensi)
         $ext = strtolower(pathinfo($orig_filename, PATHINFO_EXTENSION));
         if (!in_array($ext, $allowed_extensions)) {
+            http_response_code(400);
             echo json_encode(["error" => "Format file tidak didukung: '{$orig_filename}'. Hanya file " . implode(', ', $allowed_extensions) . " yang diizinkan."]);
             exit;
         }
@@ -101,6 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 3. Cek ukuran file
         if ($uploaded_files['size'][$key] > $max_file_size) {
             $max_mb = round($max_file_size / (1024 * 1024), 2);
+            http_response_code(400);
             echo json_encode(["error" => "Ukuran file '{$orig_filename}' melebihi batas maksimal {$max_mb} MB."]);
             exit;
         }
@@ -204,6 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "url_download" => "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/$hasil_file"
         ];
     } else {
+        http_response_code(500);
         $response = [
             "error" => "Gagal membuat file PDF.",
             "debug" => $output

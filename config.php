@@ -20,5 +20,12 @@ return [
 
     // Masa simpan file log (dalam hari). Default: 90 hari (3 bulan)
     'max_log_lifetime_days' => 90,
+
+    // Konfigurasi Basic Authentication untuk pengamanan API
+    'basic_auth' => [
+        'enabled' => false, // Set ke true untuk mengaktifkan pengamanan Basic Auth
+        'username' => 'admin',
+        'password' => 'admin_secret_123',
+    ],
 ];
 ?>
