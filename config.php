@@ -10,7 +10,7 @@ return [
     'python_path' => 'C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe',
 
     // Ekstensi file yang diizinkan untuk diunggah
-    'allowed_extensions' => ['pdf', 'png', 'jpg', 'jpeg'],
+    'allowed_extensions' => ['pdf', 'png', 'jpg', 'jpeg', 'docx', 'txt', 'xlsx'],
 
     // Batas maksimal ukuran file (dalam bytes). Default: 20 MB
     'max_file_size' => 20 * 1024 * 1024,

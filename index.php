@@ -49,7 +49,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    $raw_files_names = isset($_FILES['files']['name']) ? $_FILES['files']['name'] : [];
     $uploaded_files = $_FILES['files'];
+    
+    // Urutkan array $_FILES['files'] berdasarkan key/indeks agar sesuai dengan index array yang dikirim
+    // oleh client (seperti files[0], files[1], files[2]...)
+    if (is_array($uploaded_files['name'])) {
+        ksort($uploaded_files['name']);
+        ksort($uploaded_files['tmp_name']);
+        ksort($uploaded_files['type']);
+        ksort($uploaded_files['error']);
+        ksort($uploaded_files['size']);
+    }
+
     $upload_dir = __DIR__ . "/uploads/";
     if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
 
@@ -69,13 +81,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_dir($log_dir)) mkdir($log_dir, 0777, true);
     clean_old_logs($log_dir, $max_log_lifetime_days);
 
-    // Validasi semua file sebelum diproses
-    for ($i = 0; $i < count($uploaded_files['name']); $i++) {
-        $orig_filename = basename($uploaded_files['name'][$i]);
+    // Validasi semua file sebelum diproses menggunakan key yang sudah diurutkan
+    foreach ($uploaded_files['name'] as $key => $name) {
+        $orig_filename = basename($name);
         
         // 1. Cek upload error
-        if ($uploaded_files['error'][$i] !== UPLOAD_ERR_OK) {
-            echo json_encode(["error" => "Gagal mengunggah file '{$orig_filename}' (Kode error: " . $uploaded_files['error'][$i] . ")"]);
+        if ($uploaded_files['error'][$key] !== UPLOAD_ERR_OK) {
+            echo json_encode(["error" => "Gagal mengunggah file '{$orig_filename}' (Kode error: " . $uploaded_files['error'][$key] . ")"]);
             exit;
         }
 
@@ -87,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // 3. Cek ukuran file
-        if ($uploaded_files['size'][$i] > $max_file_size) {
+        if ($uploaded_files['size'][$key] > $max_file_size) {
             $max_mb = round($max_file_size / (1024 * 1024), 2);
             echo json_encode(["error" => "Ukuran file '{$orig_filename}' melebihi batas maksimal {$max_mb} MB."]);
             exit;
@@ -100,16 +112,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_dir($request_dir)) mkdir($request_dir, 0777, true);
 
     $saved_paths = [];
+    $counter = 0;
 
-    // Simpan file ke dalam subfolder unik
-    for ($i = 0; $i < count($uploaded_files['name']); $i++) {
-        // Sanitasi nama file dan tambahkan indeks agar file bernama sama dalam satu request tidak saling menimpa
-        $sanitized_name = preg_replace("/[^a-zA-Z0-9\._-]/", "_", basename($uploaded_files['name'][$i]));
-        $filename = $i . "_" . $sanitized_name;
+    // Simpan file ke dalam subfolder unik sesuai urutan index array
+    foreach ($uploaded_files['name'] as $key => $name) {
+        $orig_filename = basename($name);
+        // Sanitasi nama file dan gunakan counter untuk menjaga keunikan dan urutan
+        $sanitized_name = preg_replace("/[^a-zA-Z0-9\._-]/", "_", $orig_filename);
+        $filename = $counter . "_" . $sanitized_name;
         $target_path = $request_dir . $filename;
-        if (move_uploaded_file($uploaded_files['tmp_name'][$i], $target_path)) {
+        if (move_uploaded_file($uploaded_files['tmp_name'][$key], $target_path)) {
             $saved_paths[] = "uploads/" . $request_id . "/" . $filename;
         }
+        $counter++;
     }
 
     // Simpan input.json dengan nama unik
@@ -167,7 +182,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Log debug global (di-append dengan timestamp agar menyimpan seluruh riwayat aktivitas)
     $log_timestamp = date("Y-m-d H:i:s");
     $log_entry = "=================================== [{$log_timestamp}] ===================================\n";
-    $log_entry .= $output . "\n\n";
+    $log_entry .= "Raw Uploaded Names (Order from client): " . json_encode($raw_files_names) . "\n";
+    $log_entry .= "Saved Paths (After ksort): " . json_encode($saved_paths) . "\n";
+    $log_entry .= "Python Output:\n" . $output . "\n\n";
     file_put_contents($log_filename, $log_entry, FILE_APPEND);
 
     // Hapus file debug.txt lama di root directory jika ada

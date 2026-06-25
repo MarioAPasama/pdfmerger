@@ -1,6 +1,6 @@
-# PDF & Image Merger Service
+# PDF, Image, Word, Text, & Excel Merger Service
 
-Layanan API berbasis Web (PHP) dan skrip pengolah dokumen (Python) untuk mengonversi gambar (`.png`, `.jpg`, `.jpeg`) serta menggabungkannya bersama berkas PDF menjadi satu file PDF utuh yang terintegrasi.
+Layanan API berbasis Web (PHP) dan skrip pengolah dokumen (Python) untuk mengonversi gambar (`.png`, `.jpg`, `.jpeg`), dokumen Word (`.docx`), file teks (`.txt`), serta dokumen Excel (`.xlsx`) dan menggabungkannya bersama berkas PDF menjadi satu file PDF utuh yang terintegrasi.
 
 Proyek ini telah dioptimalkan untuk menangani **banyak pengguna secara bersamaan (concurrency)**, aman dari celah keamanan unggahan file, memiliki sistem pembersihan sampah otomatis, dan pencatatan log harian yang teratur.
 
@@ -11,7 +11,7 @@ Proyek ini telah dioptimalkan untuk menangani **banyak pengguna secara bersamaan
 ### 1. Kebutuhan Python
 Proyek ini membutuhkan Python 3.x dan pustaka berikut. Jalankan perintah ini di terminal Anda:
 ```bash
-pip install pillow pypdf
+pip install pillow pypdf openpyxl mammoth xhtml2pdf fpdf2
 ```
 
 ### 2. Kebutuhan Web Server
@@ -21,10 +21,10 @@ Pastikan Anda menggunakan server lokal (seperti **Laragon**, **XAMPP**, atau **A
 
 ## ⚙️ Konfigurasi (`config.php`)
 
-Anda dapat mengatur seluruh perilaku aplikasi secara terpusat di berkas [config.php](file:///d:/laragon/www/pdfmerger/config.php). Parameter yang tersedia meliputi:
+Anda dapat mengatur seluruh perilaku aplikasi secara terpusat di berkas [config.php](config.php). Parameter yang tersedia meliputi:
 
 *   **`python_path`**: Path absolut menuju executable Python di sistem Anda. Jika Python terdaftar di *Environment Path* sistem, Anda cukup mengisi `'python'`.
-*   **`allowed_extensions`**: Daftar ekstensi file yang diizinkan untuk diunggah (default: `['pdf', 'png', 'jpg', 'jpeg']`).
+*   **`allowed_extensions`**: Daftar ekstensi file yang diizinkan untuk diunggah (default: `['pdf', 'png', 'jpg', 'jpeg', 'docx', 'txt', 'xlsx']`).
 *   **`max_file_size`**: Ukuran maksimal file per berkas yang boleh diunggah dalam satuan bytes (default: `20 MB`).
 *   **`max_output_lifetime`**: Masa simpan berkas PDF hasil gabungan di folder `output/` dalam satuan detik (default: `3600` detik atau 1 jam). Lebih dari itu, file akan otomatis dihapus secara berkala saat ada request baru.
 *   **`max_log_lifetime_days`**: Masa simpan berkas log harian dalam satuan hari (default: `90` hari atau 3 bulan).
@@ -50,13 +50,17 @@ pdfmerger/
 
 ## 🚀 Cara Penggunaan (API Endpoint)
 
-Kirimkan HTTP POST Request ke `webservice.php` dengan tipe konten `multipart/form-data` menggunakan form field bernama `files[]`.
+Kirimkan HTTP POST Request ke `index.php` dengan tipe konten `multipart/form-data` menggunakan form field bernama `files[]`.
+
+### Pengaturan Urutan File (Ordering):
+Untuk memastikan urutan penggabungan file tepat seperti yang diinginkan, disarankan mengirimkan nama key dengan indeks array secara eksplisit (seperti `files[0]`, `files[1]`, `files[2]`, dst.). Aplikasi akan otomatis mengurutkan file berdasarkan indeks tersebut sebelum digabungkan.
 
 ### Contoh Request Menggunakan cURL:
 ```bash
 curl -X POST \
-  -F "files[]=@C:\path\ke\file1.pdf" \
-  -F "files[]=@C:\path\ke\gambar2.jpg" \
+  -F "files[0]=@/path/to/file1.pdf" \
+  -F "files[1]=@/path/to/file2.docx" \
+  -F "files[2]=@/path/to/file3.jpg" \
   http://localhost/pdfmerger/
 ```
 
@@ -80,4 +84,4 @@ curl -X POST \
     *   Sanitasi nama file dari karakter aneh/berbahaya (`preg_replace`).
     *   Proteksi folder `uploads/` menggunakan `.htaccess` untuk mematikan mesin PHP/eksekusi skrip lain jika ada berkas mencurigakan yang lolos.
 3.  **Pembersihan Otomatis (Cleanup)**: Berkas sementara dan file JSON perantara langsung dihapus seketika setelah proses penggabungan selesai. Berkas hasil akhir juga akan terhapus otomatis setelah 1 jam untuk menghemat kapasitas disk server.
-4.  **Log Harian Terstruktur**: Log harian disimpan di folder [logs/](file:///d:/laragon/www/pdfmerger/logs) dengan penamaan harian (misal: `log_YYYY-MM-DD.log`) dan fitur rotasi log otomatis yang hanya menyimpan riwayat selama 3 bulan terakhir.
+4.  **Log Harian Terstruktur**: Log harian disimpan di folder [logs/](logs/) dengan penamaan harian (misal: `log_YYYY-MM-DD.log`) dan fitur rotasi log otomatis yang hanya menyimpan riwayat selama 3 bulan terakhir.
